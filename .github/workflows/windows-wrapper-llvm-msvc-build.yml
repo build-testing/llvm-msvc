@@ -36,7 +36,7 @@ jobs:
           
     - name: Build llvm
       run: |
-        cmake -Bbuild`
+        cmake -Bbuild `
         -DLLVM_INCLUDE_TESTS=OFF `
         -DLLVM_INCLUDE_EXAMPLES=OFF `
         -DLLDB_ENABLE_PYTHON=OFF `
