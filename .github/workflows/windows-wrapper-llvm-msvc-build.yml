@@ -25,9 +25,17 @@ jobs:
     - name: Checkout Repo
       uses: actions/checkout@v3
       with:
-          path: C:\llvm-msvc
+          path: llvm-msvc
           submodules: 'recursive'
           
+    - name: Prepare C Drive
+      run: |
+        mkdir C:\llvm-msvc
+        
+    - name: Copy to C Drive
+      run: |
+        xcopy llvm-msvc C:\llvm-msvc /E /H /C /I
+        
     - name: Build llvm
       run: |
         cd C:\
@@ -50,17 +58,21 @@ jobs:
       run: |
         7z a -v1500m C:\windows-wrapper-llvm-msvc.zip C:\install
         
+    - name: Copy Artifacts Back
+      run: |
+        xcopy C:\windows-wrapper-llvm-msvc.zip* D:\a\windows-wrapper-llvm-msvc.zip* /E /H /C /I
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
         name: windows-wrapper-llvm-msvc
-        path: C:\windows-wrapper-llvm-msvc.zip.00*
+        path: D:\a\windows-wrapper-llvm-msvc.zip.00*
         
     - name: Release
       uses: softprops/action-gh-release@v1
       if: ${{ startsWith(github.ref, 'refs/tags/') }}
       with:
         prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') || contains(github.ref, '-pre') }}
-        files: C:\windows-wrapper-llvm-msvc.zip.00*
+        files: D:\a\windows-wrapper-llvm-msvc.zip.00*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
