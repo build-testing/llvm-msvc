@@ -1,5 +1,9 @@
 name: windows-wrapper-llvm-msvc-build
 
+concurrency:
+  group: build-${{ github.head_ref }}
+  cancel-in-progress: true
+  
 permissions:
   contents: write
   
@@ -24,9 +28,12 @@ jobs:
           path: llvm-msvc
           submodules: 'recursive'
     
+    - name: Install vswhere
+      run: |
+        choco install vswhere --version 2.8.4 --force
+
     - name: Setup MSVC
       run: |
-        choco install vswhere
         $vsPath = &vswhere -version 17.8.5 -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
         echo "VSINSTALLDIR=$vsPath" >> $env:GITHUB_ENV
         echo "PATH=$vsPath\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64;$env:PATH" >> $env:GITHUB_ENV
