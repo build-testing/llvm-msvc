@@ -1,9 +1,5 @@
 name: windows-wrapper-llvm-msvc-build
-  
-concurrency:
-  group: build-${{ github.head_ref }}
-  cancel-in-progress: true
-  
+
 permissions:
   contents: write
   
@@ -17,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
+        os: [windows-2022]
     env:
       BUILD_TYPE: Release
     steps:
@@ -27,18 +23,16 @@ jobs:
       with:
           path: llvm-msvc
           submodules: 'recursive'
-          
-    - name: Prepare C Drive
+    
+    - name: Setup MSVC
       run: |
-        mkdir C:\llvm-msvc
-        
-    - name: Copy to C Drive
-      run: |
-        xcopy llvm-msvc C:\llvm-msvc /E /H /C /I
+        choco install vswhere
+        $vsPath = &vswhere -version 17.8.5 -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        echo "VSINSTALLDIR=$vsPath" >> $env:GITHUB_ENV
+        echo "PATH=$vsPath\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64;$env:PATH" >> $env:GITHUB_ENV
         
     - name: Build llvm
       run: |
-        cd C:\
         cmake -Bbuild `
         -DLLVM_INCLUDE_TESTS=OFF `
         -DLLVM_INCLUDE_EXAMPLES=OFF `
@@ -47,32 +41,29 @@ jobs:
         -DLLVM_ENABLE_ZLIB=OFF `
         -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
         -DLLVM_USE_CRT_RELEASE=MT `
-        -DCMAKE_INSTALL_PREFIX=C:\install `
+        -DCMAKE_INSTALL_PREFIX=install `
         -DLLVM_TARGETS_TO_BUILD="X86;AArch64" `
         -DLLVM_ENABLE_PROJECTS="clang;lld" `
-        C:\llvm-msvc\llvm
-        cmake --build build --config ${{ env.BUILD_TYPE }}
-        cmake --build build --config ${{ env.BUILD_TYPE }} --target install
+        llvm-msvc\\llvm
+        cmake --build build --config ${{ env.BUILD_TYPE }} -- -j1
+        cmake --build build --config ${{ env.BUILD_TYPE }} --target install -- -j1
         
     - name: Package llvm
       run: |
-        7z a -v1500m C:\windows-wrapper-llvm-msvc.zip C:\install
+        7z a -v1500m windows-wrapper-llvm-msvc.zip install
         
-    - name: Copy Artifacts Back
-      run: |
-        xcopy C:\windows-wrapper-llvm-msvc.zip* D:\a\windows-wrapper-llvm-msvc.zip* /E /H /C /I
-
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
         name: windows-wrapper-llvm-msvc
-        path: D:\a\windows-wrapper-llvm-msvc.zip.00*
+        path: windows-wrapper-llvm-msvc.zip.00*
         
     - name: Release
       uses: softprops/action-gh-release@v1
       if: ${{ startsWith(github.ref, 'refs/tags/') }}
       with:
         prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') || contains(github.ref, '-pre') }}
-        files: D:\a\windows-wrapper-llvm-msvc.zip.00*
+        files: windows-wrapper-llvm-msvc.zip.00*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
