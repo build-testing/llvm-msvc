@@ -12,6 +12,8 @@ if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
 
+add_compile_options(-Wno-date-time)
+
 # Builds with custom install names and installation rpath setups may not work
 # in the build tree. Allow these cases to use CMake's default build tree
 # behavior by setting `LLVM_NO_INSTALL_NAME_DIR_FOR_BUILD_TREE` to do this.
